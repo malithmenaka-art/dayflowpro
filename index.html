@@ -629,6 +629,13 @@ textarea.finp{resize:vertical;min-height:56px;line-height:1.6}
         <div id="custom-cats-list" style="margin-bottom:8px"></div>
         <div id="sts-custom-cat-display"></div>
       </div>
+      <div class="ss">
+        <h3>Account</h3>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--text2)">
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Signed in as malithmenaka@gmail.com</span>
+          <button onclick="fbSignOut()" class="hbtn" style="font-size:12px;padding:5px 12px;background:#fff;color:#d93025;border:1px solid #f4b8b3;font-weight:700;font-family:inherit">Sign out</button>
+        </div>
+      </div>
       <button class="sts" onclick="saveSet()">Save Settings</button>
     </div>
   </div>
@@ -684,7 +691,7 @@ textarea.finp{resize:vertical;min-height:56px;line-height:1.6}
 // DATA
 // ═══════════════════════════════════════════════════════
 const COLORS=['#ea4335','#e67c73','#f6bf26','#33b679','#0b8043','#039be5','#3f51b5','#7986cb','#8e24aa','#d81b60','#f4511e','#1a73e8','#616161','#0097a7','#00897b','#546e7a'];
-const BUILD_VER='20260928-hol-tags';
+const BUILD_VER='20260928-auth';
 const DEF_CLR='#1a73e8';
 
 const ALL_TZS=[
@@ -855,20 +862,22 @@ if(!CFG.tzNicks['Australia/Brisbane'])CFG.tzNicks['Australia/Brisbane']='AUBNE';
 // missing the full Victoria and Western Australia calendars. Runs once,
 // stamped by CFG._holMig so a later manual de-selection is never undone.
 const HOL_MIG_VER=2;
-function migrateHols(){
-  if(!Array.isArray(CFG.hols))CFG.hols=[];
+function migrateHolsObj(o){
+  if(!o||typeof o!=='object')return false;
+  if(!Array.isArray(o.hols))o.hols=[];
   let changed=false;
-  if(CFG.hols.includes('AU_VIC')){
-    CFG.hols=CFG.hols.filter(x=>x!=='AU_VIC');
-    if(!CFG.hols.includes('VIC'))CFG.hols.push('VIC');
+  if(o.hols.includes('AU_VIC')){
+    o.hols=o.hols.filter(x=>x!=='AU_VIC');
+    if(!o.hols.includes('VIC'))o.hols.push('VIC');
     changed=true;
   }
-  if((CFG._holMig||0)<HOL_MIG_VER){
-    for(const h of ['AU','WA','VIC','SL'])if(!CFG.hols.includes(h)){CFG.hols.push(h);changed=true;}
-    CFG._holMig=HOL_MIG_VER;changed=true;
+  if((o._holMig||0)<HOL_MIG_VER){
+    for(const h of ['AU','WA','VIC','SL'])if(!o.hols.includes(h)){o.hols.push(h);changed=true;}
+    o._holMig=HOL_MIG_VER;changed=true;
   }
   return changed;
 }
+function migrateHols(){return migrateHolsObj(CFG);}
 migrateHols();
 lsLazy('dfp_cfg',CFG);
 function lsLazy(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
@@ -2867,13 +2876,86 @@ function onAlldayToggle(){
 
 // Firebase REST
 const FB='https://dayflowpro-3308f-default-rtdb.asia-southeast1.firebasedatabase.app/dayflowpro';
+
+// ── Firebase Authentication (REST, no SDK) ─────────────
+// Web API key is a public project identifier, not a secret. Access control
+// is enforced server-side by the Realtime Database security rules.
+const FB_API_KEY='AIzaSyAoAcSsKzsgIovXIaf3R6Z2psYuUcbn9kg';
+const FB_AUTH_EMAIL='malithmenaka@gmail.com';
+let _fbIdToken=null,_fbIdExp=0,_fbRefreshing=null;
+function _authStore(){try{return JSON.parse(localStorage.getItem('dfp_fbauth')||'null')}catch(e){return null}}
+function _authSave(o){try{if(o)localStorage.setItem('dfp_fbauth',JSON.stringify(o));else localStorage.removeItem('dfp_fbauth')}catch(e){}}
+function fbSignedIn(){return !!(_authStore()&&_authStore().refreshToken)}
+async function fbSignIn(password){
+  const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+FB_API_KEY,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({email:FB_AUTH_EMAIL,password,returnSecureToken:true})
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((d&&d.error&&d.error.message)||('HTTP '+r.status));
+  _fbIdToken=d.idToken;_fbIdExp=Date.now()+(parseInt(d.expiresIn,10)||3600)*1000;
+  _authSave({refreshToken:d.refreshToken,uid:d.localId});
+  return d.localId;
+}
+// Returns a valid ID token, refreshing it when within 2 minutes of expiry.
+// A revoked or invalid refresh token signs the device out; a network failure does not.
+async function fbToken(force){
+  if(!force&&_fbIdToken&&Date.now()<_fbIdExp-120000)return _fbIdToken;
+  const st=_authStore();
+  if(!st||!st.refreshToken)return null;
+  if(_fbRefreshing)return _fbRefreshing;
+  _fbRefreshing=(async()=>{
+    try{
+      const r=await fetch('https://securetoken.googleapis.com/v1/token?key='+FB_API_KEY,{
+        method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(st.refreshToken)
+      });
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok){
+        if(r.status>=400&&r.status<500){
+          _authSave(null);_fbIdToken=null;_fbIdExp=0;
+          try{showSignIn('Your session has expired. Please sign in again.')}catch(e){}
+        }
+        return null;
+      }
+      _fbIdToken=d.id_token;_fbIdExp=Date.now()+(parseInt(d.expires_in,10)||3600)*1000;
+      if(d.refresh_token&&d.refresh_token!==st.refreshToken)_authSave({...st,refreshToken:d.refresh_token});
+      return _fbIdToken;
+    }catch(e){return null}
+    finally{_fbRefreshing=null}
+  })();
+  return _fbRefreshing;
+}
+// Authenticated fetch against the Realtime Database. Retries once with a
+// forced token refresh if the server answers 401.
+async function fbFetch(path,opts){
+  const go=async force=>{
+    const t=await fbToken(force);
+    return fetch(FB+path+(t?('?auth='+encodeURIComponent(t)):''),opts);
+  };
+  let r=await go(false);
+  if(r.status===401&&fbSignedIn())r=await go(true);
+  return r;
+}
+function showSignIn(msg){
+  const sc=document.getElementById('pw-screen');if(!sc)return;
+  sc.style.display='flex';sc.style.opacity='1';
+  const e=document.getElementById('pw-e');if(e)e.textContent=msg||'';
+  setTimeout(()=>{const i=document.getElementById('pw-i');if(i)i.focus()},100);
+}
+function fbSignOut(){
+  _authSave(null);_fbIdToken=null;_fbIdExp=0;
+  try{closeSet()}catch(e){}
+  showSignIn('Signed out.');
+}
 let _fbSync=false;      // true while a PUT is in-flight
 let _localDirty=false;  // true when local has changes NOT yet confirmed by Firebase
 let _lastSaveTs=0;
 
 async function fbLoad(){
   try{
-    const r=await fetch(FB+'/events.json');
+    const r=await fbFetch('/events.json');
+    if(!r.ok)return null;
     const d=await r.json();
     if(!d)return null;
     const parsed=JSON.parse(d);
@@ -2894,7 +2976,7 @@ async function fbSave(e,retries=3){
   let ok=false;
   for(let attempt=0;attempt<retries&&!ok;attempt++){
     try{
-      const r=await fetch(FB+'/events.json',{
+      const r=await fbFetch('/events.json',{
         method:'PUT',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify(JSON.stringify(payload))
@@ -2922,7 +3004,7 @@ async function fbSave(e,retries=3){
   _fbSync=false;
 }
 
-async function fbSaveCfgFn(){try{await fetch(FB+'/config.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(JSON.stringify(CFG))});}catch(e){}}
+async function fbSaveCfgFn(){try{await fbFetch('/config.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(JSON.stringify(CFG))});}catch(e){}}
 
 
 // ── Config sync DOWN from Firebase (clients, colours, holidays, timezones) ──
@@ -2930,11 +3012,15 @@ async function fbSaveCfgFn(){try{await fetch(FB+'/config.json',{method:'PUT',hea
 // client list but this device still has one, this device re-seeds the cloud.
 async function fbLoadCfg(showToast){
   try{
-    const r=await fetch(FB+'/config.json');
+    const r=await fbFetch('/config.json');
+    if(!r.ok)return false;
     const d=await r.json();
     if(!d)return false;
     const remote=typeof d==='string'?JSON.parse(d):d;
     if(!remote||typeof remote!=='object')return false;
+    if(migrateHolsObj(remote)){
+      fbFetch('/config.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(JSON.stringify(remote))}).catch(()=>{});
+    }
     const rTs=remote._ts||0, lTs=CFG._ts||0;
     const rL=remote.labels||[], lL=CFG.labels||[];
     const takeRemote = rTs>lTs || (rTs===lTs && !lL.length && rL.length) || (!lL.length && rL.length);
@@ -3135,7 +3221,7 @@ function getScheduledAmountOnDate(plan, dateStr) {
 async function finLoad() {
   try {
     const keys=['accounts','fin_inc','fin_exp','fin_txn','fin_cfg'];
-    const results = await Promise.all(keys.map(k=>fetch(FB+'/'+k+'.json').then(r=>r.json()).catch(()=>null)));
+    const results = await Promise.all(keys.map(k=>fbFetch('/'+k+'.json').then(r=>r.ok?r.json():null).catch(()=>null)));
     const [acc,inc,exp,txn,cfg]=results;
     if(acc){ACCOUNTS=JSON.parse(acc);lsSt('dfp_accounts',ACCOUNTS);}
     if(inc){INCOME_PLANS=JSON.parse(inc);lsSt('dfp_fin_inc',INCOME_PLANS);}
@@ -3148,7 +3234,7 @@ function finSave() { _TLC=null;
   lsSt('dfp_accounts',ACCOUNTS); lsSt('dfp_fin_inc',INCOME_PLANS);
   lsSt('dfp_fin_exp',EXPENSE_PLANS); lsSt('dfp_fin_txn',TRANSACTIONS);
   lsSt('dfp_fin_cfg',FIN_CFG);
-  const save=(k,v)=>fetch(FB+'/'+k+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(JSON.stringify(v))}).catch(()=>{});
+  const save=(k,v)=>fbFetch('/'+k+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(JSON.stringify(v))}).catch(()=>{});
   save('accounts',ACCOUNTS); save('fin_inc',INCOME_PLANS); save('fin_exp',EXPENSE_PLANS);
   save('fin_txn',TRANSACTIONS); save('fin_cfg',FIN_CFG);
 }
@@ -5873,10 +5959,30 @@ function _updMobViewBtns(){
 
 
 </script>
-<div id="pw-screen" style="position:fixed;inset:0;background:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:'Google Sans',sans-serif"><div style="text-align:center;padding:40px;max-width:360px;width:100%"><div style="font-size:32px;font-weight:700;color:#1967d2;margin-bottom:8px">DayFlowPro</div><div style="font-size:13px;color:#70757a;margin-bottom:32px">Your personal planning app</div><input id="pw-i" type="password" placeholder="Password" style="width:100%;padding:14px;border:2px solid #e0e0e0;border-radius:10px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:12px;font-family:inherit" onkeydown="if(event.key==='Enter')chkPw()"><div id="pw-e" style="color:#d93025;font-size:13px;margin-bottom:12px;min-height:18px"></div><button onclick="chkPw()" style="width:100%;padding:14px;background:#1967d2;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit">Open DayFlowPro</button></div></div>
+<div id="pw-screen" style="position:fixed;inset:0;background:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:'Google Sans',sans-serif"><div style="text-align:center;padding:40px;max-width:360px;width:100%"><div style="font-size:32px;font-weight:700;color:#1967d2;margin-bottom:8px">DayFlowPro</div><div style="font-size:13px;color:#70757a;margin-bottom:32px">Your personal planning app</div><input id="pw-i" type="password" placeholder="Password" style="width:100%;padding:14px;border:2px solid #e0e0e0;border-radius:10px;font-size:15px;outline:none;box-sizing:border-box;margin-bottom:12px;font-family:inherit" onkeydown="if(event.key==='Enter')chkPw()"><div id="pw-e" style="color:#d93025;font-size:13px;margin-bottom:12px;min-height:18px"></div><button id="pw-b" onclick="chkPw()" style="width:100%;padding:14px;background:#1967d2;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit">Open DayFlowPro</button></div></div>
 <script>
-if(sessionStorage.getItem('dfp_auth')==='ok'){document.getElementById('pw-screen').style.display='none';}
-else{setTimeout(()=>document.getElementById('pw-i')?.focus(),100);}
-function chkPw(){if(document.getElementById('pw-i').value==='Th1nkpad'){sessionStorage.setItem('dfp_auth','ok');const s=document.getElementById('pw-screen');s.style.transition='opacity .3s';s.style.opacity='0';setTimeout(()=>s.remove(),300);}else{document.getElementById('pw-e').textContent='Incorrect password';document.getElementById('pw-i').value='';setTimeout(()=>document.getElementById('pw-e').textContent='',3000);}}
+try{sessionStorage.removeItem('dfp_auth')}catch(e){}
+if(fbSignedIn()){document.getElementById('pw-screen').style.display='none';}
+else{setTimeout(()=>{const i=document.getElementById('pw-i');if(i)i.focus()},100);}
+async function chkPw(){
+  const inp=document.getElementById('pw-i'),err=document.getElementById('pw-e'),btn=document.getElementById('pw-b');
+  const pw=inp.value;if(!pw)return;
+  btn.disabled=true;btn.textContent='Signing in…';err.textContent='';
+  try{
+    await fbSignIn(pw);
+    inp.value='';
+    btn.textContent='Opening…';
+    // Reload once so every startup sync runs authenticated from a clean state
+    location.reload();
+  }catch(e){
+    const m=String((e&&e.message)||'');
+    err.textContent=/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(m)?'Incorrect password'
+      :/TOO_MANY_ATTEMPTS/.test(m)?'Too many attempts. Please wait a few minutes.'
+      :/USER_DISABLED/.test(m)?'This account has been disabled.'
+      :/Failed to fetch|NetworkError|Load failed/i.test(m)?'No connection. Check your internet and try again.'
+      :'Sign in failed ('+m+')';
+    inp.value='';btn.disabled=false;btn.textContent='Open DayFlowPro';
+  }
+}
 </script>
 </body></html>
