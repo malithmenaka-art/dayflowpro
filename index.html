@@ -70,7 +70,10 @@ input,select,textarea{font-family:inherit}
 .dhc.tod .dhc-d{background:linear-gradient(135deg,#1967d2,#1a73e8);color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;box-shadow:0 2px 8px rgba(25,103,210,.4)}
 .dhc.wknd .dhc-d,.dhc.wknd .dhc-n{color:#9c6fbf}
 .dhc-hols{max-width:92%;overflow:hidden;margin-top:3px;display:flex;flex-direction:column;gap:1px}
-.hol-chip{font-size:9px;padding:1px 5px;border-radius:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.hol-chip{font-size:9px;padding:1px 5px;border-radius:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.1);display:flex;align-items:center;gap:3px;min-width:0}
+.hol-rg{color:#fff;border-radius:5px;padding:0 4px;font-size:8px;font-weight:800;letter-spacing:.03em;line-height:1.7;flex-shrink:0}
+.hol-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.adev-rg{display:inline-block;background:rgba(255,255,255,.3);border-radius:3px;padding:0 4px;margin-right:5px;font-size:9px;font-weight:800;letter-spacing:.03em}
 
 /* GRID BODY */
 #gbody{display:flex;flex:1;position:relative}
@@ -147,13 +150,13 @@ input,select,textarea{font-family:inherit}
 /* FULL MODAL */
 #fmod{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:700;align-items:center;justify-content:center;padding:12px}
 #fmod.open{display:flex}
-#fmd{background:var(--surface);border-radius:var(--r8);width:100%;max-width:520px;box-shadow:var(--sz3);max-height:94dvh;overflow-y:auto;animation:mIn .2s ease}
+#fmd{background:var(--surface);border-radius:var(--r8);width:100%;max-width:520px;box-shadow:var(--sz3);max-height:94dvh;overflow:hidden;display:flex;flex-direction:column;animation:mIn .2s ease}
 @keyframes mIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.fmh{padding:16px 16px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border2)}
+.fmh{padding:14px 16px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border2);flex-shrink:0}
 .fmh h2{font-family:'Google Sans',sans-serif;font-size:18px;font-weight:500;color:var(--text3);flex:1}
 .fmx{background:none;border:none;width:32px;height:32px;border-radius:50%;font-size:18px;color:var(--text2);display:flex;align-items:center;justify-content:center}
 .fmx:hover{background:#f1f3f4;color:var(--text)}
-.fmb{padding:12px 16px 0}
+.fmb{padding:12px 16px 16px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;overscroll-behavior:contain}
 .fr{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
 .fi{width:20px;color:var(--text2);font-size:18px;flex-shrink:0;padding-top:2px;text-align:center}
 .ff{flex:1;min-width:0}
@@ -179,7 +182,7 @@ textarea.finp{resize:vertical;min-height:56px;line-height:1.6}
 .cp{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .12s;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .cp:hover{transform:scale(1.12);box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .cp.sel{border-color:#3c4043;box-shadow:0 0 0 2px #fff inset,0 2px 6px rgba(0,0,0,.2)}
-.fma{display:flex;align-items:center;padding:12px 16px 14px;border-top:1px solid var(--border2);gap:8px;margin-top:8px}
+.fma{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border2);gap:8px;margin-top:0;flex-shrink:0;background:var(--surface);flex-wrap:wrap}
 .fma-sp{flex:1}
 .fm-sv{background:var(--blue);color:#fff;border:none;border-radius:var(--r4);padding:9px 22px;font-size:14px;font-weight:500;cursor:pointer;box-shadow:0 1px 2px rgba(25,103,210,.3)}
 .fm-sv:hover{background:var(--blue2)}
@@ -413,6 +416,12 @@ textarea.finp{resize:vertical;min-height:56px;line-height:1.6}
 <div id="fmod">
   <div id="fmd">
     <div class="fmh"><h2 id="fm-hdr-t">Event</h2><button class="fmx" onclick="closeFM()">✕</button></div>
+    <div class="fma">
+      <button class="fm-cn" onclick="closeFM()">Cancel</button>
+      <button class="fm-del" id="fm-del" style="display:none" onclick="onDelEv()">Delete</button>
+      <div class="fma-sp"></div>
+      <button class="fm-sv" onclick="saveFM()">Save</button>
+    </div>
     <div class="fmb">
       <div class="fr"><div class="ff"><input class="finp ttl" id="fm-t" type="text" placeholder="Title"></div></div>
       <div class="fr">
@@ -551,12 +560,6 @@ textarea.finp{resize:vertical;min-height:56px;line-height:1.6}
         <div class="ff"><label>Notes</label><textarea class="finp" id="fm-n" rows="3" placeholder="Add notes…"></textarea></div>
       </div>
     </div>
-    <div class="fma">
-      <button class="fm-cn" onclick="closeFM()">Cancel</button>
-      <button class="fm-del" id="fm-del" style="display:none" onclick="onDelEv()">Delete</button>
-      <div class="fma-sp"></div>
-      <button class="fm-sv" onclick="saveFM()">Save</button>
-    </div>
   </div>
 </div>
 
@@ -681,7 +684,7 @@ textarea.finp{resize:vertical;min-height:56px;line-height:1.6}
 // DATA
 // ═══════════════════════════════════════════════════════
 const COLORS=['#ea4335','#e67c73','#f6bf26','#33b679','#0b8043','#039be5','#3f51b5','#7986cb','#8e24aa','#d81b60','#f4511e','#1a73e8','#616161','#0097a7','#00897b','#546e7a'];
-const BUILD_VER='20260831-0252';
+const BUILD_VER='20260928-hol-tags';
 const DEF_CLR='#1a73e8';
 
 const ALL_TZS=[
@@ -721,18 +724,18 @@ const TZ_COLORS={'Asia/Colombo':'#7c4dff','Australia/Melbourne':'#1a73e8','Austr
 
 // Holiday data keyed by YYYY-MM-DD
 const HOLS={
-  AU:{name:'Australia (Federal)',color:'#1a73e8',days:{
+  AU:{name:'Australia (Federal)',tag:'AU',color:'#1a73e8',days:{
     '2025-01-01':"New Year's Day",'2025-01-27':'Australia Day (obs.)','2025-04-18':'Good Friday',
     '2025-04-19':'Easter Saturday','2025-04-20':'Easter Sunday','2025-04-21':'Easter Monday',
     '2025-04-25':'ANZAC Day','2025-06-09':"King's Birthday",'2025-12-25':'Christmas Day','2025-12-26':'Boxing Day',
     '2026-01-01':"New Year's Day",'2026-01-26':'Australia Day','2026-04-03':'Good Friday',
     '2026-04-04':'Easter Saturday','2026-04-05':'Easter Sunday','2026-04-06':'Easter Monday',
-    '2026-04-25':'ANZAC Day','2026-06-08':"King's Birthday",'2026-12-25':'Christmas Day','2026-12-28':'Boxing Day (obs.)',
+    '2026-04-25':'ANZAC Day','2026-06-08':"King's Birthday",'2026-12-25':'Christmas Day','2026-12-26':'Boxing Day','2026-12-28':'Boxing Day (substitute)',
     '2027-01-01':"New Year's Day",'2027-01-26':'Australia Day','2027-03-26':'Good Friday',
     '2027-03-27':'Easter Saturday','2027-03-28':'Easter Sunday','2027-03-29':'Easter Monday',
-    '2027-04-25':'ANZAC Day','2027-06-14':"King's Birthday",'2027-12-25':'Christmas Day','2027-12-27':'Boxing Day (obs.)',
+    '2027-04-25':'ANZAC Day','2027-06-14':"King's Birthday",'2027-12-25':'Christmas Day','2027-12-26':'Boxing Day','2027-12-27':'Christmas Day (substitute)','2027-12-28':'Boxing Day (substitute)',
   }},
-  WA:{name:'Western Australia',color:'#1565c0',days:{
+  WA:{name:'Western Australia',tag:'WA',color:'#1565c0',days:{
     '2026-01-01':"New Year's Day",'2026-01-26':'Australia Day',
     '2026-03-02':'Labour Day',
     '2026-04-03':'Good Friday','2026-04-05':'Easter Sunday','2026-04-06':'Easter Monday',
@@ -749,7 +752,7 @@ const HOLS={
     '2027-12-25':'Christmas Day','2027-12-27':'Christmas Day (substitute)',
     '2027-12-26':'Boxing Day','2027-12-28':'Boxing Day (substitute)',
   }},
-  VIC:{name:'Victoria',color:'#6d4c41',days:{
+  VIC:{name:'Victoria',tag:'VIC',color:'#6d4c41',days:{
     '2026-01-01':"New Year's Day",'2026-01-26':'Australia Day',
     '2026-03-09':'Labour Day',
     '2026-04-03':'Good Friday','2026-04-04':'Saturday before Easter',
@@ -763,20 +766,17 @@ const HOLS={
     '2027-03-08':'Labour Day',
     '2027-03-26':'Good Friday','2027-03-27':'Saturday before Easter',
     '2027-03-28':'Easter Sunday','2027-03-29':'Easter Monday',
-    '2027-04-25':'Anzac Day','2027-04-26':'Anzac Day (substitute)',
+    '2027-04-25':'Anzac Day',
     '2027-06-14':"King's Birthday",
-    '2027-09-24':'AFL Grand Final Friday',
+    '2027-09-24':'AFL Grand Final Friday (date to be confirmed)',
     '2027-11-02':'Melbourne Cup Day',
     '2027-12-25':'Christmas Day','2027-12-27':'Christmas Day (substitute)',
     '2027-12-26':'Boxing Day','2027-12-28':'Boxing Day (substitute)',
   }},
-  AU_VIC:{name:'Victoria, Australia',color:'#0d47a1',days:{
-    '2025-11-04':'Melbourne Cup Day','2026-11-03':'Melbourne Cup Day','2027-11-02':'Melbourne Cup Day',
-  }},
-  AU_QLD:{name:'Queensland',color:'#283593',days:{
+  AU_QLD:{name:'Queensland',tag:'QLD',color:'#283593',days:{
     '2025-05-05':'Labour Day','2025-08-13':'Ekka (Brisbane)','2026-05-04':'Labour Day','2026-08-12':'Ekka (Brisbane)',
   }},
-  SL:{name:'Sri Lanka',color:'#c62828',days:{
+  SL:{name:'Sri Lanka',tag:'SL',color:'#c62828',days:{
     '2025-01-01':"New Year's Day",'2025-01-14':'Thai Pongal','2025-02-04':'Independence Day',
     '2025-02-26':'Maha Sivarathri','2025-04-13':'Sinhala & Tamil New Year Eve','2025-04-14':'Sinhala & Tamil New Year',
     '2025-04-18':'Good Friday','2025-05-01':'May Day','2025-05-12':'Vesak Poya',
@@ -850,6 +850,26 @@ if(!CFG.tzNicks['Australia/Melbourne'])CFG.tzNicks['Australia/Melbourne']='AUM';
 if(!CFG.tzNicks['Australia/Perth'])CFG.tzNicks['Australia/Perth']='AUW';
 if(!CFG.tzNicks['Australia/Sydney'])CFG.tzNicks['Australia/Sydney']='AUSY';
 if(!CFG.tzNicks['Australia/Brisbane'])CFG.tzNicks['Australia/Brisbane']='AUBNE';
+// ── One-time holiday calendar migration ────────────────
+// Legacy configs carried the 'AU_VIC' stub (Melbourne Cup only) and were
+// missing the full Victoria and Western Australia calendars. Runs once,
+// stamped by CFG._holMig so a later manual de-selection is never undone.
+const HOL_MIG_VER=2;
+function migrateHols(){
+  if(!Array.isArray(CFG.hols))CFG.hols=[];
+  let changed=false;
+  if(CFG.hols.includes('AU_VIC')){
+    CFG.hols=CFG.hols.filter(x=>x!=='AU_VIC');
+    if(!CFG.hols.includes('VIC'))CFG.hols.push('VIC');
+    changed=true;
+  }
+  if((CFG._holMig||0)<HOL_MIG_VER){
+    for(const h of ['AU','WA','VIC','SL'])if(!CFG.hols.includes(h)){CFG.hols.push(h);changed=true;}
+    CFG._holMig=HOL_MIG_VER;changed=true;
+  }
+  return changed;
+}
+migrateHols();
 lsLazy('dfp_cfg',CFG);
 function lsLazy(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 let SH_PENDING=null;
@@ -1194,7 +1214,7 @@ function buildHolMap(){
     const h=HOLS[hid];if(!h)continue;
     for(const[date,title]of Object.entries(h.days)){
       if(!holMap[date])holMap[date]=[];
-      holMap[date].push({title,color:h.color,hid});
+      holMap[date].push({title,color:h.color,hid,tag:h.tag||hid,cal:h.name});
     }
   }
 }
@@ -1334,7 +1354,10 @@ function render(){
       for(const h of hs.slice(0,2)){
         const chip=el('div','hol-chip');
         chip.style.background=h.color+'22';chip.style.color=h.color;
-        chip.textContent=h.title;chip.title=h.title;hr.appendChild(chip);
+        const rg=el('span','hol-rg');rg.textContent=h.tag;rg.style.background=h.color;
+        const nmx=el('span','hol-nm');nmx.textContent=h.title;
+        chip.appendChild(rg);chip.appendChild(nmx);
+        chip.title=h.title+' ('+h.cal+')';hr.appendChild(chip);
       }
       c.appendChild(hr);
     }
@@ -2595,7 +2618,7 @@ function buildSetUI(){
     const chk=el('input','');chk.type='checkbox';chk.id='h-'+hid;chk.checked=(CFG.hols||[]).includes(hid);
     chk.addEventListener('change',()=>{if(chk.checked){if(!(CFG.hols||[]).includes(hid)){if(!CFG.hols)CFG.hols=[];CFG.hols.push(hid)}}else{CFG.hols=(CFG.hols||[]).filter(x=>x!==hid)}});
     const lbl=el('label','');lbl.htmlFor='h-'+hid;
-    lbl.innerHTML=`<span class="hdc" style="background:${hd.color}"></span>${hd.name}`;
+    lbl.innerHTML=`<span class="hdc" style="background:${hd.color}"></span>${hd.name}<span class="hol-rg" style="background:${hd.color};margin-left:6px;display:inline-block">${hd.tag||hid}</span>`;
     row.appendChild(chk);row.appendChild(lbl);hl.appendChild(row);
   }
   doc.getElementById('s-zm').value=CFG.zoom||3;
@@ -2753,8 +2776,11 @@ function renderAllDayRow(dates){
     // Holiday chips (compact)
     for(const h of holMap[key]||[]){
       const chip=document.createElement('div');
-      chip.className='adev';chip.style.background=h.color;chip.title=h.title;
-      chip.textContent=h.title;col.appendChild(chip);
+      chip.className='adev';chip.style.background=h.color;
+      chip.title=h.title+' ('+h.cal+')';
+      const rg=document.createElement('span');rg.className='adev-rg';rg.textContent=h.tag;
+      chip.appendChild(rg);chip.appendChild(document.createTextNode(h.title));
+      col.appendChild(chip);
     }
     adr.appendChild(col);
   }
@@ -2916,7 +2942,9 @@ async function fbLoadCfg(showToast){
       const keepZoom=CFG.zoom;
       CFG={...CFG,...remote,zoom:keepZoom};
       PPM=CFG.zoom||PPM;
+      const _holFixed=migrateHols();
       lsSt('dfp_cfg',CFG);
+      if(_holFixed)saveCfg();
       try{buildHolMap();}catch(e){}
       render();
       if(document.getElementById('setmod')?.classList.contains('open')){try{buildSetUI();}catch(e){}}
