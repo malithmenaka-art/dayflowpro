@@ -691,7 +691,7 @@ textarea.finp{resize:vertical;min-height:56px;line-height:1.6}
 // DATA
 // ═══════════════════════════════════════════════════════
 const COLORS=['#ea4335','#e67c73','#f6bf26','#33b679','#0b8043','#039be5','#3f51b5','#7986cb','#8e24aa','#d81b60','#f4511e','#1a73e8','#616161','#0097a7','#00897b','#546e7a'];
-const BUILD_VER='20261012-initial-paint';
+const BUILD_VER='20261012-mob-dayflip';
 const DEF_CLR='#1a73e8';
 
 const ALL_TZS=[
@@ -1720,11 +1720,39 @@ function startDragMove(e,blk,ev){
   if(e.target.dataset.rsz||e.button&&e.button!==0)return;e.preventDefault();e.stopPropagation();
   const sx=e.touches?e.touches[0].clientX:e.clientX,sy=e.touches?e.touches[0].clientY:e.clientY,br=blk.getBoundingClientRect(),dur=ev.dm||30,color=ev.color||DEF_CLR,gox=sx-br.left,gom=(sy-br.top)/PPM;
   let moved=false,gh=null,tip=null,raf=null,cx=sx,cy=sy;
-  function cT(){const sa=document.getElementById('sa'),sr=sa.getBoundingClientRect(),dh=(document.getElementById('dhr')?.offsetHeight||50)+(document.getElementById('adr')?.offsetHeight||0);const cols=document.querySelectorAll('.dc');let tc=null,td=null;for(const co of cols){const r=co.getBoundingClientRect();if(cx>=r.left&&cx<r.right){tc=co;td=co.dataset.dt;break;}}cols.forEach(co=>co.classList.remove('dov'));if(!tc||!td)return;tc.classList.add('dov');const gy=cy-sr.top+sa.scrollTop-dh,ns=snp(Math.max(SH*60,Math.min(yM(Math.max(0,gy))-Math.round(gom),EH*60-dur)));dragSt={mid:ev._mid||ev.id,iid:ev._iid,idate:ev._idate,dur,tDt:td,tS:frM(ns),tE:frM(ns+dur)};if(tip)tip.textContent=mTs(ns)+'-'+mTs(ns+dur);}
-  function mG(){if(!gh)return;gh.style.left=(cx-gox)+'px';gh.style.top=(cy-(sy-br.top))+'px';if(tip){tip.style.left=(cx+18)+'px';tip.style.top=(cy-16)+'px';}}
+  function cT(){const sa=document.getElementById('sa'),sr=sa.getBoundingClientRect(),dh=(document.getElementById('dhr')?.offsetHeight||50)+(document.getElementById('adr')?.offsetHeight||0);const cols=document.querySelectorAll('.dc');let tc=null,td=null;for(const co of cols){const r=co.getBoundingClientRect();if(cx>=r.left&&cx<r.right){tc=co;td=co.dataset.dt;break;}}if(!tc){const _vis=[...cols].filter(c=>c.getBoundingClientRect().width>0);if(_vis.length===1){tc=_vis[0];td=tc.dataset.dt;}}cols.forEach(co=>co.classList.remove('dov'));if(!tc||!td)return;tc.classList.add('dov');const gy=cy-sr.top+sa.scrollTop-dh,ns=snp(Math.max(SH*60,Math.min(yM(Math.max(0,gy))-Math.round(gom),EH*60-dur)));dragSt={mid:ev._mid||ev.id,iid:ev._iid,idate:ev._idate,dur,tDt:td,tS:frM(ns),tE:frM(ns+dur)};if(tip)tip.textContent=(_flipOn?_dLbl(td)+' · ':'')+mTs(ns)+'-'+mTs(ns+dur);}
+  function mG(){if(!gh)return;gh.style.left=(cx-gox)+'px';gh.style.top=(cy-(sy-br.top))+'px';if(tip){if(_flipOn){tip.style.left=Math.max(8,Math.min(cx-tip.offsetWidth/2,innerWidth-tip.offsetWidth-8))+'px';tip.style.top=Math.max(8,cy-64)+'px';}else{tip.style.left=(cx+18)+'px';tip.style.top=(cy-16)+'px';}}}
   function sL(){const sa=document.getElementById('sa'),r=sa.getBoundingClientRect(),m=100,ms=14;if(cy<r.top+m&&sa.scrollTop>0){sa.scrollTop-=Math.ceil(ms*(1-(cy-r.top)/m));cT();mG();}else if(cy>r.bottom-m){sa.scrollTop+=Math.ceil(ms*(1-(r.bottom-cy)/m));cT();mG();}raf=requestAnimationFrame(sL);}
-  const onMv=e2=>{cx=e2.touches?e2.touches[0].clientX:e2.clientX;cy=e2.touches?e2.touches[0].clientY:e2.clientY;if(!moved){if(Math.abs(cx-sx)<4&&Math.abs(cy-sy)<4)return;moved=true;gh=blk.cloneNode(true);gh.id='dgh';gh.style.cssText=`position:fixed;width:${br.width}px;height:${br.height}px;left:${br.left}px;top:${br.top}px;background:${color};border-radius:4px;opacity:.88;pointer-events:none;z-index:9999;box-shadow:0 8px 28px rgba(0,0,0,.3)`;document.body.appendChild(gh);tip=document.createElement('div');tip.style.cssText='position:fixed;background:#202124;color:#fff;font-size:11px;padding:4px 12px;border-radius:20px;z-index:10000;pointer-events:none;white-space:nowrap';document.body.appendChild(tip);blk.style.opacity='.15';document.body.style.userSelect='none';raf=requestAnimationFrame(sL);}if(moved){mG();cT();}};
-  const onUp=()=>{document.removeEventListener('mousemove',onMv);document.removeEventListener('mouseup',onUp);document.removeEventListener('touchmove',onMv);document.removeEventListener('touchend',onUp);document.body.style.userSelect='';if(raf){cancelAnimationFrame(raf);raf=null;}document.querySelectorAll('.dc').forEach(c=>c.classList.remove('dov'));if(gh){gh.remove();gh=null;}if(tip){tip.remove();tip=null;}blk.style.opacity='';if(!moved){if(_shiftHeld&&(ev._iid||ev.id)){_toggleSel(ev._iid||ev.id+'_'+(ev._idate||isoDate(ev.start)));return;}openFM(ev._mid||ev.id,'edit',ev._iid,ev._idate);return;}if(dragSt){const{mid,tDt,tS,tE,iid,idate}=dragSt;dragSt=null;if(tDt&&tS&&tE){
+  // ── Phone: hold a dragged event at the screen edge to flip to the previous/next day ──
+  const _single=()=>{const v=[...document.querySelectorAll('.dc')].filter(c=>c.getBoundingClientRect().width>0);return v.length===1?v[0]:null;};
+  const _flipOn=!!_single();
+  const _dLbl=d=>{try{return parseDk(d).toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});}catch(x){return d;}};
+  let _edgeDir=0,_edgeT=null,_edgeEl=null,_parked=false;
+  function _edgeShow(dir){if(!_edgeEl){_edgeEl=document.createElement('div');_edgeEl.id='dg-edge';document.body.appendChild(_edgeEl);}_edgeEl.style.cssText='position:fixed;top:0;bottom:0;'+(dir<0?'left:0':'right:0')+';width:38px;z-index:9998;pointer-events:none;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:#fff;background:linear-gradient('+(dir<0?'90deg':'270deg')+',rgba(26,115,232,.6),rgba(26,115,232,0))';_edgeEl.textContent=dir<0?'‹':'›';}
+  function _edgeHide(){if(_edgeEl){_edgeEl.remove();_edgeEl=null;}}
+  function _flip(dir){
+    const col=_single();if(!col||!dir)return;
+    // Keep the touched element attached to the page so the touch keeps reporting moves
+    if(!_parked){blk.style.cssText+=';position:fixed;left:-10000px;top:0;opacity:0;pointer-events:none';document.body.appendChild(blk);_parked=true;}
+    VIEW='day';curDate=addD(parseDk(col.dataset.dt),dir);
+    const _sa=document.getElementById('sa');if(_sa)_sa.dataset.userScrolled='1';
+    render();
+    try{_showDatePillFromCur();}catch(x){}
+    try{if(navigator.vibrate)navigator.vibrate(12);}catch(x){}
+    cT();mG();
+  }
+  function _edgeCheck(){
+    if(!_flipOn||!moved)return;
+    const col=_single();if(!col)return;
+    const r=col.getBoundingClientRect(),Z=28;
+    const dir=cx<r.left+Z?-1:(cx>r.right-Z?1:0);
+    if(dir===_edgeDir)return;
+    _edgeDir=dir;clearTimeout(_edgeT);_edgeT=null;
+    if(dir){_edgeShow(dir);const loop=()=>{_flip(_edgeDir);_edgeT=setTimeout(loop,700);};_edgeT=setTimeout(loop,500);}
+    else _edgeHide();
+  }
+  const onMv=e2=>{cx=e2.touches?e2.touches[0].clientX:e2.clientX;cy=e2.touches?e2.touches[0].clientY:e2.clientY;if(!moved){if(Math.abs(cx-sx)<4&&Math.abs(cy-sy)<4)return;moved=true;gh=blk.cloneNode(true);gh.id='dgh';gh.style.cssText=`position:fixed;width:${br.width}px;height:${br.height}px;left:${br.left}px;top:${br.top}px;background:${color};border-radius:4px;opacity:.88;pointer-events:none;z-index:9999;box-shadow:0 8px 28px rgba(0,0,0,.3)`;document.body.appendChild(gh);tip=document.createElement('div');tip.style.cssText='position:fixed;background:#202124;color:#fff;font-size:11px;padding:4px 12px;border-radius:20px;z-index:10000;pointer-events:none;white-space:nowrap';document.body.appendChild(tip);blk.style.opacity='.15';document.body.style.userSelect='none';raf=requestAnimationFrame(sL);}if(moved){mG();cT();_edgeCheck();}};
+  const onUp=()=>{clearTimeout(_edgeT);_edgeT=null;_edgeHide();if(_parked){blk.remove();}document.removeEventListener('mousemove',onMv);document.removeEventListener('mouseup',onUp);document.removeEventListener('touchmove',onMv);document.removeEventListener('touchend',onUp);document.body.style.userSelect='';if(raf){cancelAnimationFrame(raf);raf=null;}document.querySelectorAll('.dc').forEach(c=>c.classList.remove('dov'));if(gh){gh.remove();gh=null;}if(tip){tip.remove();tip=null;}blk.style.opacity='';if(!moved){if(_shiftHeld&&(ev._iid||ev.id)){_toggleSel(ev._iid||ev.id+'_'+(ev._idate||isoDate(ev.start)));return;}openFM(ev._mid||ev.id,'edit',ev._iid,ev._idate);return;}if(dragSt){const{mid,tDt,tS,tE,iid,idate}=dragSt;dragSt=null;if(tDt&&tS&&tE){
     const dragIid=iid||(mid+'_'+idate);
     const isMulti=SEL.size>1&&SEL.has(dragIid);
     if(isMulti){
