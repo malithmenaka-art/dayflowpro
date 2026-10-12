@@ -691,7 +691,7 @@ textarea.finp{resize:vertical;min-height:56px;line-height:1.6}
 // DATA
 // ═══════════════════════════════════════════════════════
 const COLORS=['#ea4335','#e67c73','#f6bf26','#33b679','#0b8043','#039be5','#3f51b5','#7986cb','#8e24aa','#d81b60','#f4511e','#1a73e8','#616161','#0097a7','#00897b','#546e7a'];
-const BUILD_VER='20260928-auth';
+const BUILD_VER='20261012-mob-lanes';
 const DEF_CLR='#1a73e8';
 
 const ALL_TZS=[
@@ -1524,10 +1524,10 @@ function renderEv(ev,col){
   const top=mY(Math.max(SH*60,ev.sm));
   // Use percentage widths — works even before column is painted
   const G=2;
-  // On mobile cap to 2 side-by-side columns so events stay readable
-  const _mob=window.innerWidth<768;
-  const _tc=_mob?Math.min(ev._tc,2):ev._tc;
-  const _cc=_mob?Math.min(ev._c,1):ev._c;
+  // Same side-by-side layout on every screen size: each overlapping event
+  // gets its own lane, so nothing is ever hidden behind another event.
+  const _tc=ev._tc;
+  const _cc=ev._c;
   const pctW=100/Math.max(1,_tc);
   const pctL=_cc*pctW;
   const b=el('div','ev');
@@ -1539,9 +1539,7 @@ function renderEv(ev,col){
   const isDark=parseInt(color.replace('#','').slice(0,2),16)<128;
   const alpha1='rgba(255,255,255,0.28)',alpha2='rgba(255,255,255,0.1)';
   const gradBg=`linear-gradient(150deg,${alpha1} 0%,${alpha2} 40%,transparent 100%)`;
-  // On mobile: if this event was pushed to column 1 (was 2+), nudge it slightly
-  // so user can see both events; add a thicker left border to distinguish
-  const _nudge=_mob&&ev._tc>2&&ev._c>0?3:0;
+  const _nudge=0;
   b.style.cssText=`top:${top}px;left:calc(${pctL}% + ${G+_nudge}px);width:calc(${pctW}% - ${G*2+_nudge}px);height:${visH}px;background:${color};background-image:${gradBg};z-index:${10+ev._c};position:absolute`;
   if(isMeeting)b.classList.add('is-meeting');
   const isSmall=visH<36,isNano=visH<18,isTiny=visH<30;
@@ -5724,7 +5722,7 @@ const _IS_MOB = window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navi
       /* Settings button always visible */
       button[title="Settings"] { display: flex !important; }
       /* Events on mobile — ensure minimum readable width */
-      .ev { min-width: 60px; }
+      .ev { min-width: 0; }
       .ev-t { -webkit-line-clamp: 3 !important; }
     }
     /* Landscape: make bottom nav thinner */
