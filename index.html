@@ -691,7 +691,7 @@ textarea.finp{resize:vertical;min-height:56px;line-height:1.6}
 // DATA
 // ═══════════════════════════════════════════════════════
 const COLORS=['#ea4335','#e67c73','#f6bf26','#33b679','#0b8043','#039be5','#3f51b5','#7986cb','#8e24aa','#d81b60','#f4511e','#1a73e8','#616161','#0097a7','#00897b','#546e7a'];
-const BUILD_VER='20261012-mob-lanes';
+const BUILD_VER='20261012-initial-paint';
 const DEF_CLR='#1a73e8';
 
 const ALL_TZS=[
@@ -5940,6 +5940,15 @@ function _updMobViewBtns(){
     document.addEventListener('DOMContentLoaded', wireTodayBtn);
   else
     wireTodayBtn();
+})();
+
+// ── 8. Initial paint: always draw the calendar from local data on load ──
+// Previously the first draw only happened if a cloud sync found newer data,
+// so when local and cloud already matched the calendar stayed blank.
+(function _initialPaint(){
+  const go=()=>{ try{ window._firstScrolled=false; render(); }catch(e){ console.error('initial paint',e); } };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', go);
+  else go();
 })();
 
 // ── 7. Performance: on mobile, render immediately from LS ──────
